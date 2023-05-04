@@ -1,0 +1,51 @@
+/* 1. Найдите потоки, количество учеников в которых больше или равно 40. В отчет выведите номер потока,
+название курса и количество учеников. */
+
+SELECT 
+( SELECT name FROM courses WHERE id = course_id) AS 'course',
+number, students_amount
+FROM streams
+WHERE students_amount >= 40;
+
+/* 2. Найдите два потока с самыми низкими значениями успеваемости. В отчет выведите номер потока, название курса,
+фамилию и имя преподавателя (одним столбцом), оценку успеваемости. */
+
+SELECT 
+(SELECT number FROM streams WHERE streams.id = stream_id ) AS 'stream',
+(SELECT name ||'_'|| surname FROM teachers WHERE teachers.id = teacher_id) AS 'teacher',
+(SELECT name FROM courses WHERE courses.id = (SELECT course_id FROM streams WHERE id = stream_id ) ) AS 'course',
+performance
+FROM grades
+ORDER BY performance ASC LIMIT 2;
+
+/* 3. Найдите среднюю успеваемость всех потоков преподавателя Николая Савельева. В отчёт выведите
+идентификатор преподавателя и среднюю оценку по потокам. */
+
+SELECT
+teacher_id,
+AVG(performance) AS AV_perform
+FROM grades
+WHERE teacher_id = (SELECT teachers.id
+FROM teachers
+WHERE name = 'Николай' AND surname = 'Савельев');
+
+/* 4. Найдите потоки преподавателя Натальи Петровой, а также потоки, по которым успеваемость ниже 4.8
+В отчёт выведите идентификатор потока, фамилию и имя преподавателя. */
+
+SELECT
+stream_id,
+(SELECT name ||'_'|| surname FROM teachers WHERE teachers.id = grades.teacher_id) AS 'teacher'
+FROM grades
+WHERE teacher_id = (SELECT teachers.id FROM teachers
+WHERE name = 'Наталья' AND surname = 'Петрова')
+OR                              
+performance < 4.8;
+
+/* 5. Найдите разницу между средней успеваемостью преподавателя с наивысшим соответствующим значением
+и средней успеваемостью преподавателя с наименьшим значением. Средняя успеваемость считается по всем потокам преподавателя. */
+
+SELECT
+MAX(AV_perform) - MIN(AV_perform) AS 'diff_perform'
+FROM 
+(SELECT AVG(performance) AS 'AV_perform' FROM grades GROUP BY teacher_id)
+;

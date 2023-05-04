@@ -1,0 +1,96 @@
+/*
+1.Найдите общее количество учеников для каждого курса. В отчёт выведите название курса и количество учеников по всем потокам курса. Решите задание с применением оконных функций.
+*/
+
+SELECT DISTINCT
+courses.name AS course,
+SUM (streams.students_amount) OVER (PARTITION BY courses.id) AS total_students
+FROM
+courses
+LEFT JOIN
+streams ON streams.course_id = courses.id;
+
+/*
+2.Найдите среднюю оценку по всем потокам для всех учителей. В отчёт выведите идентификатор,
+фамилию и имя учителя, среднюю оценку по всем проведённым потокам. Учителя, у которых не было потоков,
+также должны попасть в выборку. Решите задание с применением оконных функций.
+*/
+
+SELECT DISTINCT
+teachers.id AS teacher_id,
+teachers.surname ||' '|| teachers.name AS teacher,
+AVG (grades.performance) OVER (PARTITION BY teacher_id) AS av_perform
+FROM
+teachers
+LEFT JOIN
+grades ON grades.teacher_id = teachers.id;
+
+/*
+3. Какие индексы надо создать для максимально быстрого выполнения представленного запроса:
+*/
+
+SELECT
+  surname,
+  name,
+  number,
+  performance
+FROM grades
+  JOIN teachers 
+    ON grades.teacher_id = teachers.id
+  JOIN streams
+    ON grades.stream_id = streams.id
+WHERE number >= 200;
+
+/*Чтобы повысить эффективность данного запроса, необходимо создать индекс для столбца 'number' 
+таблицы 'streams' Так как нумерация потоков сквозная и значение 'number' для каждой строки
+должно быть уникальным, то индекс тоже возможно создать уникальным*/
+
+CREATE UNIQUE INDEX streams_number_idx ON streams(number);
+
+/*
+5. Для каждого преподавателя выведите имя, фамилию, минимальное значение успеваемости
+по всем потокам преподавателя, название курса, который соответствует потоку с минимальным значением
+успеваемости, максимальное значение успеваемости по всем потокам преподавателя, название курса,
+соответствующий потоку с максимальным значением успеваемости, дату начала следующего потока.
+Выполните задачу с использованием оконных функций.
+*/
+
+/*Запрос, представленный ниже выдает в отчет ID преподавателя, имя и фамилию преподавателя,
+а также значение МАКС и МИН успеваемости у этого преподавателя по всем потокам*/
+
+SELECT DISTINCT
+teachers.id AS teacher_id,
+teachers.surname ||' '|| teachers.name AS teacher,
+MIN (grades.performance) OVER (w_teacher) AS max_perf,
+MAX (grades.performance) OVER (w_teacher) AS min_perf
+FROM
+teachers
+LEFT JOIN
+grades ON grades.teacher_id = teachers.id
+WINDOW w_teacher AS (PARTITION BY grades.teacher_id);
+
+/*Запрос, представленный ниже выдает в отчет имя курса и MIN/MAX успеваемость по каждому курсу*/
+
+SELECT courses.name AS course,
+MIN(grades.performance) AS min_perf,
+MAX(grades.performance) AS max_perf
+FROM
+courses 
+LEFT JOIN streams ON course_id = courses.id
+LEFT JOIN grades ON streams.id = grades.stream_id
+GROUP BY courses.id;
+
+/*Этот запрос можно переписать с использованием оконных функций аналогично первому запросу*/
+
+SELECT DISTINCT
+courses.name AS course,
+MIN(grades.performance) OVER (w_course) AS min_perf,
+MAX(grades.performance) OVER (w_course) AS max_perf
+FROM
+courses 
+LEFT JOIN streams ON course_id = courses.id
+LEFT JOIN grades ON streams.id = grades.stream_id
+WINDOW w_course AS (PARTITION BY courses.id);
+
+/*К сожалению полностью решить задачу не удалось*/
+

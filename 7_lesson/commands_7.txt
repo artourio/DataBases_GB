@@ -1,0 +1,56 @@
+1.
+CREATE VIEW 'performance_by_courses' AS
+SELECT courses.name,
+AVG(performance) AS 'av_perform',
+MAX(streams.number) AS 'last_stream',
+MAX(streams.started_at) AS 'last_start'
+FROM
+courses 
+LEFT JOIN streams ON course_id = courses.id
+LEFT JOIN grades ON streams.id = grades.stream_id
+GROUP BY courses.id;
+
+/*Получаем среднюю успеваемость по курсам, а также номер и дату старта крайнего потока для этого курса*/
+
+2.
+
+BEGIN TRANSACTION;
+	DELETE FROM grades WHERE grades.teacher_id =3;
+	DELETE FROM teachers WHERE teachers.id = 3;
+ROLLBACK; /*Для проверки работоспособности. Для полного удаления нужно использовать команду 'COMMIT'*/
+
+3.
+
+CREATE TRIGGER 'check_performance_value' BEFORE INSERT
+ON grades
+	BEGIN
+	SELECT CASE
+	WHEN
+		(NEW.performance NOT BETWEEN 0 AND 5)
+	THEN
+		RAISE(ABORT, 'Wrong value for performance. It can take values from 0 to 5.0')
+	END;
+END;
+
+
+4.
+
+CREATE TRIGGER 'check_start_date_and_stream_number' BEFORE INSERT
+ON streams
+	BEGIN
+	SELECT CASE
+	WHEN
+		(NEW.started_at NOT LIKE '____-__-__')
+	OR
+		(NEW.started_at) < (SELECT DATE('now')) /*Также можно разбить проверку даты по частям. Вырезая с помощью функции SUBSTR 
+		части введенной и текущей даты. Однако такой вариант решения мне кажется избыточным. Достаточно проверить,
+		чтобы значение месяца не превышало 12. Таким образом исключим возможную путаницу между вводом месяца и дня		
+		*/
+	OR
+		(CAST(SUBSTR(NEW.started_at, 6, 2) AS INTEGER) NOT BETWEEN 1 AND 12)
+	OR
+		(NEW.number) < (SELECT MAX(streams.number) FROM streams)
+	THEN
+		RAISE(ABORT, 'Wrong date value or format or wrong stream number.')
+	END;
+END;

@@ -1,0 +1,82 @@
+1.
+
+SELECT streams.number, streams.started_at, courses.name AS 'course'
+FROM streams INNER JOIN courses
+ON streams.course_id = courses.id;
+
+2.
+
+SELECT streams.students_amount, courses.name AS 'course'
+FROM streams LEFT JOIN courses
+ON streams.course_id = courses.id;
+
+3.
+
+SELECT id, surname ||' '|| name AS 'teacher',
+AVG(performance) AS 'av_perform'
+FROM
+grades JOIN teachers ON teachers.id = teacher_id
+GROUP BY teacher_id;
+
+4.
+
+/*Попытки разложить запрос на динамические таблицы*/
+
+SELECT courses.name AS course,
+MIN(grades.performance) AS min_perf,
+MAX(grades.performance) AS max_perf
+FROM
+courses 
+LEFT JOIN streams ON course_id = courses.id
+LEFT JOIN grades ON streams.id = grades.stream_id
+GROUP BY courses.id;
+/* выдает имя курса и MIN/MAX успеваемость по нему*/
+
+
+
+SELECT teacher_id,
+MIN(performance) AS mini,
+MAX(performance) AS maxi
+FROM grades
+GROUP BY stream_id; 
+/*выдает ID преподавателя и макс/мин успеваемость у этого преподавателя.*/
+
+SELECT teacher_id,
+teachers.name ||' '|| teachers.surname,
+MIN(performance) AS mini,
+MAX(performance) AS maxi
+FROM grades
+JOIN teachers ON teachers.id = teacher_id
+GROUP BY teacher_id;
+/* выдает id, имя преподавателя и его макс/мин успеваемость */
+
+SELECT surname ||' '|| name AS 'teacher',
+performance
+FROM grades
+JOIN teachers ON teachers.id = teacher_id
+GROUP BY stream_id ;
+/* выдает преподавателя по имени и его успеваемость на всех потоках*/
+
+
+/*Финальный вариант решения. Не уверен насколько он верный. К тому же не удалось прикрутить LEAD(started_at)
+Постоянно возникала ошибка злоупотребления оконной фунцией "misuse of window function"
+*/
+
+SELECT teachers.name ||' '|| teachers.surname AS teacher,
+MIN(performance) AS mini,
+MAX(performance) AS maxi,
+course
+FROM grades
+INNER JOIN teachers ON teachers.id = teacher_id
+INNER JOIN
+(SELECT courses.name AS course, teacher_id AS t_id
+FROM
+streams 
+JOIN courses ON course_id = courses.id JOIN grades ON streams.id = grades.stream_id)
+ON teacher_id = t_id
+GROUP BY course;
+
+
+
+
+

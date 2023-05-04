@@ -1,0 +1,68 @@
+/* 1. В таблице streams переименуйте столбец даты начала обучения в started_at */
+ 
+sqlite> ALTER TABLE streams RENAME COLUMN start_date TO started_at;
+sqlite> ALTER TABLE streams ADD COLUMN finished_at TEXT NOT NULL;
+
+/* 2. Приведите базу данных в соответствие с требованиями методички https://gbcdn.mrgcdn.ru/uploads/asset/4287018/attachment/d704b40df407acad419b20bf566a308b.pdf */
+
+sqlite> ALTER TABLE teachers RENAME COLUMN teacher_surname TO surname;
+sqlite> ALTER TABLE teachers RENAME COLUMN teacher_name TO name;
+/* Примечание:
+При попытке записать предыдущие две команды в виде: */
+
+ALTER TABLE teachers RENAME COLUMN teacher_surname TO surname,
+RENAME COLUMN teacher_name TO name;
+
+/* Получаем синтаксическую ошибку Error: in prepare, near ",": syntax error (1)
+Хотя в статьях в интернете подобный способ переименования нескольких столбцов за раз встречается.
+Это особенность обработки команд SQL в SQLite3 ? Команды языка SQL могут отличаться в разных СУБД ? */
+
+/* Заполнение таблиц данными в соответсвии с методичкой:*/
+
+/* таблица teachers: */
+
+sqlite> INSERT INTO teachers (name, surname, email) VALUES
+   ...> ('Николай', 'Cавельев', 'saveliev.n@mai.ru'),
+   ...> ('Наталья', 'Петрова', 'petrova.n@yandex.ru'),
+   ...> ('Елена', 'Малышева', 'malisheva.e@google.com');
+
+/* таблица courses: */
+
+sqlite> INSERT INTO courses (name) VALUES
+   ...> ('Базы данных'),
+   ...> ('Основы Python'),
+   ...> ('Linux.Рабочая станция');
+
+/* таблица streams: */
+
+sqlite> INSERT INTO streams (course_id, number, started_at, students_amount, finished_at) VALUES
+   ...> (3, 165, '18.08.2020', 34, 'n.a.'),
+   ...> (2, 178, '02.10.2020', 37, 'n.a.'),
+   ...> (1, 203, '12.11.2020', 35, 'n.a.'),
+   ...> (1, 210, '03.12.2020', 41, 'n.a.');
+
+/* таблица grades: */
+
+INSERT INTO grades (teacher_id, stream_id, performance) VALUES
+   ...> (3, 1, 4.7),
+   ...> (3, 2, 4.9),
+   ...> (1, 3, 4.8),
+   ...> (1, 4, 4.9);
+
+/* В таблице успеваемости измените тип столбца «Ключ потока» на REAL. Выполните задание на таблице с данными */
+
+PRAGMA foreign_keys = OFF;
+ALTER TABLE grades RENAME TO grades_old;
+CREATE TABLE grades (teacher_id INTEGER NOT NULL,
+stream_id REAL NOT NULL,
+performance REAL NOT NULL,
+FOREIGN KEY (teacher_id) REFERENCES teachers (id),
+FOREIGN KEY (stream_id) REFERENCES streams (id)
+);
+INSERT INTO grades (teacher_id, stream_id, performance)
+SELECT teacher_id, stream_id, performance
+FROM grades_old;
+
+DROP TABLE grades_old;
+PRAGMA foreign_keys = ON;
+

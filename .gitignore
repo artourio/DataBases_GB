@@ -1,0 +1,6 @@
+# Ignore that files
+
+*.log
+*.conf
+
+
